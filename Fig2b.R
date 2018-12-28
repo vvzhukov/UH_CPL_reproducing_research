@@ -16,11 +16,14 @@ str(data1)
 data2 <- subset(data1,XDIndicator == "XD")
 head(data2)
 
-ggplot(data=data2,aes(x=min_year, y=Chi)) +
+ggplot(data=data2,aes(x=min_year, y=KDirect/KTotal)) +
+    geom_point() +
     geom_smooth() +
     xlim(1980, 2015) +
     xlab("")
 
-ggplot(data=data1,aes(x=min_year, y=KDirect)) +
+ggplot(data=data2,aes(x=min_year, y=KMediated/KTotal)) +
+    geom_point() +
     geom_smooth() +
-    xlim(1980, 2015)
+    xlim(1980, 2015) +
+    xlab("")
