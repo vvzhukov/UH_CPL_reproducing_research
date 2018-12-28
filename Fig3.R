@@ -1,6 +1,7 @@
 ## Paper "Cross-disciplinary evolution of the genomics revolution"
 ## Fig 3
 ## Research reproduced by: Vitalii Z.
+## State: Issues with medians, D figure and shapes
 
 ## Loading libraries, defining variables
 library(ggplot2)

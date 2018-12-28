@@ -1,6 +1,7 @@
 ## Paper "Cross-disciplinary evolution of the genomics revolution"
 ## Fig 2b
 ## Research reproduced by: Vitalii Z.
+## State: In progress
 
 ## Loading libraries, defining variables
 library(ggplot2)

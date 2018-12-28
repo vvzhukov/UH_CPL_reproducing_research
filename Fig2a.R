@@ -1,6 +1,7 @@
 ## Paper "Cross-disciplinary evolution of the genomics revolution"
 ## Fig 2a
 ## Research reproduced by: Vitalii Z.
+## State: Remake with Gephi lib
 
 ## Loading libraries, defining variables
 
