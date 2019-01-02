@@ -9,7 +9,7 @@ library(splitstackshape)
 library(igraph)
 
 varY<-1990 ## Year of network
-path <- "/Users/apple/Scolar-Plot/XD_Human_genom/Data_OSF" ## Path to data
+path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF" ## Path to data
 
 ## Uploading data 
 
@@ -41,6 +41,10 @@ links <- subset(links, from %in% nodes$id) ##
 links <- subset(links, to %in% nodes$id)
 
 ## Validation: unique(links$from) %in% unique(nodes$id) && unique(links$to) %in% unique(nodes$id)
+colnames(links)[1]<-c("Source")
+colnames(links)[2]<-c("Target")
+write.csv(links, file = "links.csv", row.names=F)
+write.csv(nodes, file = "nodes.csv", row.names=F)
 
 net <- graph.data.frame(links, nodes, directed=F) ## Defining network
 ## E(net) # The edges of the "net" object 

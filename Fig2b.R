@@ -17,6 +17,8 @@ str(data1)
 data2 <- subset(data1,XDIndicator == "XD")
 head(data2)
 
+## total number of faculty collaborators KTotal
+## find among them how many come from the opposite department and take their ratio
 ggplot(data=data2,aes(x=min_year, y=KDirect/KTotal)) +
     geom_point() +
     geom_smooth() +
