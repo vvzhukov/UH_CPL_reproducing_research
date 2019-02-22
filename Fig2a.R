@@ -7,8 +7,8 @@
 
 library(splitstackshape)
 library(igraph)
-varY0<-2000 ## Year of network, lowest border
-varY<-2005 ## Year of network, highest border
+varY0<-1900 ## Year of network, lowest border
+varY<-1990 ## Year of network, highest border
 
 path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF" ## Path to data
 
@@ -27,6 +27,10 @@ colnames(data4)<-c("google_id", "year", "citations", "coathor_codes")
 
 nodes <- data3
 links <- data4
+
+summary(nodes)
+nodes[duplicated(nodes$id)]
+links[duplicated(links$id)]
 
 colnames(nodes)[1]<-c("id") ## google_id modified to id
 colnames(links)[1]<-c("from")

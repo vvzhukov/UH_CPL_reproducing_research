@@ -103,12 +103,12 @@ data6 <- read.csv(paste(path,"/GoogleScholar_paper_stats_summary.csv", sep=""))
 # Total coathors = 'Direct XD links'
 ggplot(data=data6) +
     geom_rect(aes(xmin = 1990, xmax = 2003, ymin = -Inf, ymax = Inf, fill = "pink"), alpha = 0.1) +
-    geom_line(aes(x=year, y=Total_direct_XD_p/Total_authors), color = "blue") +
-    geom_line(aes(x=year, y=Total_mediated_XD_p/Total_authors), color = "red") +
+    geom_line(aes(x=year, y=Total_direct_XD_p/Total_authors), color = "blue", size=2) +
+    geom_line(aes(x=year, y=Total_mediated_XD_p/Total_authors), color = "red", size=2) +
     xlim(1980, 2015) +
-    xlab("") +
+    xlab("Year") +
     ylab("Fraction of XD collaborations") +
     theme(legend.position="none") +
-    geom_text(aes(1980,0.12,label = 'Mediated XD links'), color = "red", hjust = 0) +
-    geom_text(aes(1980,0.11,label = 'Direct XD links'), color = "blue", hjust = 0) +
-    geom_text(aes(1990,0.18,label = ' HGP (1990-2003)'), color = "black", hjust = 0)
+    geom_text(aes(2005,0.11,label = 'Mediated XD links'), color = "red", hjust = 0, size = 5) +
+    geom_text(aes(2005,0.10,label = 'Direct XD links'), color = "blue", hjust = 0, size = 5) +
+    geom_text(aes(1991,0.18,label = ' HGP (1990-2003)'), color = "black", hjust = 0, size = 5)
