@@ -32,18 +32,47 @@ PDF_and_median_scaled <- function(dv, xv, ## data variable, x-axis variable
     return(pv)
 }
 
-#PDF for min publ year
+
+#A PDF for min publ year 
+# Change the name of axis, everything else is correct
 PDF_and_median_scaled(data1,data1$min_year,data1$XDIndicator,1955,2020,10)
-#PDF for total collaboration degree
+
+#B PDF for total collaboration degree
 PDF_and_median_scaled(data1,data1$KTotal,data1$XDIndicator,0,2000,500)
-#PDF for Cross-disciplinarity
+
+#C PDF for Cross-disciplinarity
 PDF_and_median_scaled(data1,data1$Chi,data1$XDIndicator,0,1,0.2)
-#PDF for Page rank centrality
-PDF_and_median_scaled(data1,data1$PRCentrality*data1$KTotal,data1$XDIndicator,0,10,1)
-#PDF for mean publication impact factor
+
+#D PDF for Page rank centrality
+PDF_and_median_scaled(data1,data1$PRCentrality*4190,data1$XDIndicator,0,10,1)
+
+#E PDF for mean publication impact factor
 PDF_and_median_scaled(data1,data1$mean_of_IF,data1$XDIndicator,0,25,5)
+
 #PDF Total career citations log10
 PDF_and_median_scaled(data1,log10(data1$t_pubs_citations),data1$XDIndicator,0,6,1)
+
+
+## DRAFTS:
+
+# 
+# PDF_and_median_log_scaled <- function(dv, xv, ## data variable, x-axis variable
+#                                       gv, XscaleMin, ## group variable
+#                                       XscaleMax, Xstep, Yscale, breaksv) {
+#     
+#     mu <- aggregate(xv,list(gv),mean)
+#     
+#     pv <- ggplot(data=dv, aes(x=xv, y=..density.., colour=gv, fill=gv)) +
+#         geom_density(alpha=0.2, adjust=1, trim=T) +
+#         geom_vline(data=mu, aes(xintercept=x, colour=Group.1),
+#                    linetype="dashed", size=1) +
+#         scale_x_continuous(breaks = seq(XscaleMin, XscaleMax, Xstep)) +
+#         scale_y_log10(limits=Yscale, breaks=breaksv) +
+#         xlab(deparse(substitute(xv))) +
+#         ylab('PDF')
+#     
+#     return(pv)
+# }
 
 # mu <- ddply(dv, gv, plyr::here(summarise), gv_mean=mean(xv))
 # library(dplyr)
@@ -64,3 +93,9 @@ PDF_and_median_scaled(data1,log10(data1$t_pubs_citations),data1$XDIndicator,0,6,
 # mu <- aggregate(data1$min_year, list(data1$XDIndicator), mean)
 # mu$Group.1
 # aggregate(gv,list(xv),mean)
+# 
+# 
+# PDF_and_median_log_scaled(data1,log10(data1$PRCentrality),data1$XDIndicator,0,10,1,
+#                           c(0.001,1), trans_breaks("log10", function(x) 10^x))
+# 
+

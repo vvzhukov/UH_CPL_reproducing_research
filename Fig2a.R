@@ -7,8 +7,9 @@
 
 library(splitstackshape)
 library(igraph)
+varY0<-2000 ## Year of network, lowest border
+varY<-2005 ## Year of network, highest border
 
-varY<-1990 ## Year of network
 path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF" ## Path to data
 
 ## Uploading data 
@@ -36,7 +37,7 @@ links <- cSplit(links, "to", ",", "long")[to!=""]
 links <- links[,c(1,4,2,3)]
 links <- subset(links,! to %in% c(1,2,0) & ! as.character(from) == as.character(to))
 
-links <- subset(links, year <= varY) ## Limiting year by variable
+links <- subset(links, (year <= varY) & (year >= varY0)) ## Limiting year by variable
 links <- subset(links, from %in% nodes$id) ##
 links <- subset(links, to %in% nodes$id)
 
