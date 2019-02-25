@@ -38,7 +38,7 @@ PDF_and_median_scaled <- function(dv, xv, ## data variable, x-axis variable
 PDF_and_median_scaled(data1,data1$min_year,data1$XDIndicator,1955,2020,10)
 
 #B PDF for total collaboration degree
-PDF_and_median_scaled(data1,data1$KTotal,data1$XDIndicator,0,2000,500)
+PDF_and_median_scaled(data1,log(data1$KTotal),data1$XDIndicator,0,2000,500)
 
 #C PDF for Cross-disciplinarity
 PDF_and_median_scaled(data1,data1$Chi,data1$XDIndicator,0,1,0.2)

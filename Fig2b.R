@@ -85,13 +85,18 @@ data4$dXDpolinators_ids <- as.numeric(ifelse(data4$author_dept =="BIO",
                                          str_count(data4$direct_depts, pattern = "BIO")))
 
 # Sum of direct XD polinators
-data4$SUM_XD_Dpolinators <- data4$dXDpolinators + data4$dXDpolinators
+data4$SUM_XD_Dpolinators <- data4$dXDpolinators + data4$dXDpolinators_ids
+
+
+data4$total_polinators <-  data4$Direct_polinators - data4$total_coathors
 
 # Group by year and get summary:
-data4 %>% group_by(year) %>% summarise (Total_authors = sum(total_coathors),
-                                        Total_direct_p = sum(Direct_polinators),
-                                        Total_direct_XD_p = sum(SUM_XD_Dpolinators),
-                                        Total_mediated_XD_p = sum(XD_pollinators),
+data4 %>% group_by(year) %>% summarise (Total_authors = sum(total_coathors)-1, # Total amount of link (TOTAL)
+                                        Total_direct_p = sum(Direct_polinators), # Link id -to- id (Direct) (DIRECT)
+                                        Total_direct_XD_p = sum(SUM_XD_Dpolinators), # Direct (id-id) + Direct(id-num) (TOTAL XD)
+                                        Tatol_direct_XD = sum(dXDpolinators), # Id -to- 0/1 (-)
+                                        Total_poli = sum(data4$total_polinators), #Id -to- 0/1/2 (POLINATORS)
+                                        Total_mediated_XD_p = sum(XD_pollinators), # mediated (id -to- 2) (MEDIATED POLI)
                                         Total_records = n()) %>% as.data.frame() -> data6
 
 # Dumping data, in order not to run this expensive loop every time 

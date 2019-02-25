@@ -66,6 +66,31 @@ net<-delete.vertices(simplify(net), degree(net)==0) ## Deleting vetices with 0 d
 plot(net, edge.color="grey", vertex.label=NA, 
      edge.width=0.2, layout=layout.kamada.kawai(net), 
      main=varY,frame=T)
+
 legend(x=-1.5, y=-1.1, c("BIO","CS", "XD"), pch=21,
        col="#777777", pt.bg=c("green", "magenta", "black"), 
        pt.cex=2, cex=.8, bty="n", ncol=3)
+
+## CORRECTION:
+library(igraph)
+set.seed(1234)
+G = erdos.renyi.game(20, 0.25)
+V(G)$Group1 = sample(3,20, replace=TRUE)
+
+plot(G, vertex.color=rainbow(3, alpha=0.4)[V(G)$Group1])
+
+G_Grouped = G
+E(G_Grouped)$weight = 1
+
+## Add edges with high weight between all nodes in the same group
+for(i in unique(V(G)$Group1)) {
+    GroupV = which(V(G)$Group1 == i)
+    G_Grouped = add_edges(G_Grouped, combn(GroupV, 2), attr=list(weight=5))
+} 
+
+## Now create a layout based on G_Grouped
+set.seed(567)
+LO = layout_with_fr(G_Grouped)
+
+## Use the layout to plot the original graph
+plot(G, vertex.color=rainbow(3, alpha=0.4)[V(G)$Group1], layout=LO)
