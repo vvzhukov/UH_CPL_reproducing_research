@@ -8,6 +8,7 @@ library(stringr)
 library(ggplot2)
 library(tidyr)
 library(dplyr)
+library(gtools)
 
 path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF" ## Path to data
 
@@ -23,7 +24,7 @@ data4 <- read.csv(paste(path,"/GoogleScholar_paper_stats.csv", sep=''),
 colnames(data4)<-c("google_id", "year", "citations", "coathor_codes")
 # Count total number of coathors
 data4 <- cbind(data4,apply(data4["coathor_codes"],1,function(x){length(strsplit(x,',')[[1]])}))
-colnames(data4)<-c("google_id", "year", "citations", "coathor_codes","total_coathors")
+colnames(data4)<-c("google_id", "year", "citations", "coathor_codes","coathors")
 
 ## Comment:
 ## total number of faculty collaborators KTotal
@@ -45,10 +46,9 @@ colnames(data4)<-c("google_id", "year", "citations", "coathor_codes","total_coat
 # code - direct link (blue line)
 
 # Counting direct, mediated
-data4$XD_pollinators <- str_count(data4$coathor_codes, "2,|,2")
+data4$XD_mediators <- str_count(data4$coathor_codes, "2,|,2")
 
-data4$Direct_polinators <- data4$total_coathors - (str_count(data4$coathor_codes, "0,|,0|1,|,1|2,|,2")) 
-# CORRECTION REQUIRED: not all coathors are XD (see line 61)
+data4$direct <- data4$coathors - (str_count(data4$coathor_codes, "0,|,0|1,|,1|2,|,2")) - 1
 
 data4$author_dept <- left_join(data4, data1, by = c("google_id"))["dept"]
 data4$raw_direct_ids <- gsub("0,|,0|1,|,1|2,|,2", "", data4$coathor_codes)
@@ -74,46 +74,60 @@ for (row in 1:nrow(data4)) {
 #                           str_count(data4$direct_depts, pattern = "CS"), 
 #                           str_count(data4$direct_depts, pattern = "BIO"))
 
-# Direct XD polinators (leafs)
-data4$dXDpolinators <- as.numeric(ifelse(data4$author_dept =="BIO",
+# Polinators XD (leafs)
+data4$XD_polinators <- as.numeric(ifelse(data4$author_dept =="BIO",
                           str_count(data4$coathor_codes, pattern = "1"),
                           str_count(data4$coathor_codes, pattern = "0")))
-
-# Direct XD polinators (Fi)
-data4$dXDpolinators_ids <- as.numeric(ifelse(data4$author_dept =="BIO",
+# Direct XD (Fi)
+data4$XD_direct <- as.numeric(ifelse(data4$author_dept =="BIO",
                                          str_count(data4$direct_depts, pattern = "CS"),
                                          str_count(data4$direct_depts, pattern = "BIO")))
+# Sum of direct = poli XD 
+data4$XD_dir_poli <- data4$XD_polinators + data4$XD_direct
 
-# Sum of direct XD polinators
-data4$SUM_XD_Dpolinators <- data4$dXDpolinators + data4$dXDpolinators_ids
-
-
-data4$total_polinators <-  data4$Direct_polinators - data4$total_coathors
+# Amunt of poli links
+data4$polinators <-  data4$coathors - data4$direct
 
 # Group by year and get summary:
-data4 %>% group_by(year) %>% summarise (Total_authors = sum(total_coathors)-1, # Total amount of link (TOTAL)
-                                        Total_direct_p = sum(Direct_polinators), # Link id -to- id (Direct) (DIRECT)
-                                        Total_direct_XD_p = sum(SUM_XD_Dpolinators), # Direct (id-id) + Direct(id-num) (TOTAL XD)
-                                        Tatol_direct_XD = sum(dXDpolinators), # Id -to- 0/1 (-)
-                                        Total_poli = sum(data4$total_polinators), #Id -to- 0/1/2 (POLINATORS)
-                                        Total_mediated_XD_p = sum(XD_pollinators), # mediated (id -to- 2) (MEDIATED POLI)
+data4 %>% group_by(year) %>% summarise (Total_authors = sum(coathors), # Total amount of link (TOTAL)
+                                        Total_direct = sum(direct), # Link id -to- id (Direct) (DIRECT)
+                                        Total_XD_dir_poli = sum(XD_dir_poli), # Direct (id-id) + Direct(id-num) (TOTAL XD, id, num)
+                                        Total_XD_direct = sum(XD_direct), # Direct (id-id) (TOTAL XD, id)
+                                        Total_XD_poli = sum(XD_polinators), # Id -to- 0/1 (-)
+                                        Total_poli = sum(polinators), #Id -to- 0/1/2 (POLINATORS)
+                                        Total_XD_mediators = sum(XD_mediators), # mediated (id -to- 2) (MEDIATED POLI)
                                         Total_records = n()) %>% as.data.frame() -> data6
 
 # Dumping data, in order not to run this expensive loop every time 
-write.csv(data6, file = paste(path,"/GoogleScholar_paper_stats_summary.csv", sep=""))
+write.csv(data6, file = paste(path,"/GoogleScholar_paper_stats_summary2.csv", sep=""))
 
 # Reading dumped data
-data6 <- read.csv(paste(path,"/GoogleScholar_paper_stats_summary.csv", sep=""))
+data6 <- read.csv(paste(path,"/GoogleScholar_paper_stats_summary2.csv", sep=""))
 
-# Total coathors = 'Direct XD links'
-ggplot(data=data6) +
+# Grouping by each 2 years (odd vs even). data6 -> data8
+data6$calc_value <- data6$Total_XD_direct/data6$Total_direct
+data7<-data6[odd(data6$year),]
+data8<-data6[even(data6$year),]
+data8$Total_authors <- (data7$Total_authors+data8$Total_authors)/2
+data8$Total_direct <- (data7$Total_direct+data8$Total_direct)/2
+data8$Total_XD_dir_poli <- (data7$Total_XD_dir_poli+data8$Total_XD_dir_poli)/2
+data8$Total_XD_poli <- (data7$Total_XD_poli+data8$Total_XD_poli)/2
+data8$Total_poli <- (data7$Total_poli+data8$Total_poli)/2
+data8$Total_XD_mediators <- (data7$Total_XD_mediators+data8$Total_XD_mediators)/2
+data8$Total_records <- (data7$Total_records+data8$Total_records)/2
+data8$calc_value <- (data7$calc_value+data8$calc_value)/2
+remove(data7)
+
+# new plot (Mohammed experiment)
+ggplot(data=data8) +
     geom_rect(aes(xmin = 1990, xmax = 2003, ymin = -Inf, ymax = Inf, fill = "pink"), alpha = 0.1) +
-    geom_line(aes(x=year, y=Total_direct_XD_p/Total_authors), color = "blue", size=2) +
-    geom_line(aes(x=year, y=Total_mediated_XD_p/Total_authors), color = "red", size=2) +
+    geom_line(aes(x=year, y=calc_value), color = "blue", size=2) +
+    geom_line(aes(x=year, y=Total_XD_mediators/Total_poli), color = "red", size=2) +
     xlim(1980, 2015) +
+    #scale_x_continuous(breaks=seq(1980,2015,by=2), limits=c(1980,2015)) +
     xlab("Year") +
     ylab("Fraction of XD collaborations") +
     theme(legend.position="none") +
-    geom_text(aes(2005,0.11,label = 'Mediated XD links'), color = "red", hjust = 0, size = 5) +
-    geom_text(aes(2005,0.10,label = 'Direct XD links'), color = "blue", hjust = 0, size = 5) +
-    geom_text(aes(1991,0.18,label = ' HGP (1990-2003)'), color = "black", hjust = 0, size = 5)
+    geom_text(aes(2005,0.24,label = 'Mediated XD links'), color = "red", hjust = 0, size = 5) +
+    geom_text(aes(2005,0.11,label = 'Direct XD links'), color = "blue", hjust = 0, size = 5) +
+    geom_text(aes(1990,0.3,label = ' HGP (1990-2003)'), color = "black", hjust = 0, size = 4)
