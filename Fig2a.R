@@ -7,6 +7,7 @@
 
 library(splitstackshape)
 library(igraph)
+library(CINNA)
 varY0<-1900 ## Year of network, lowest border
 varY<-1990 ## Year of network, highest border
 
@@ -28,9 +29,9 @@ colnames(data4)<-c("google_id", "year", "citations", "coathor_codes")
 nodes <- data3
 links <- data4
 
-summary(nodes)
-nodes[duplicated(nodes$id)]
-links[duplicated(links$id)]
+#summary(nodes)
+#nodes[duplicated(nodes$id)]
+#links[duplicated(links$id)]
 
 colnames(nodes)[1]<-c("id") ## google_id modified to id
 colnames(links)[1]<-c("from")
@@ -70,27 +71,3 @@ plot(net, edge.color="grey", vertex.label=NA,
 legend(x=-1.5, y=-1.1, c("BIO","CS", "XD"), pch=21,
        col="#777777", pt.bg=c("green", "magenta", "black"), 
        pt.cex=2, cex=.8, bty="n", ncol=3)
-
-## CORRECTION:
-library(igraph)
-set.seed(1234)
-G = erdos.renyi.game(20, 0.25)
-V(G)$Group1 = sample(3,20, replace=TRUE)
-
-plot(G, vertex.color=rainbow(3, alpha=0.4)[V(G)$Group1])
-
-G_Grouped = G
-E(G_Grouped)$weight = 1
-
-## Add edges with high weight between all nodes in the same group
-for(i in unique(V(G)$Group1)) {
-    GroupV = which(V(G)$Group1 == i)
-    G_Grouped = add_edges(G_Grouped, combn(GroupV, 2), attr=list(weight=5))
-} 
-
-## Now create a layout based on G_Grouped
-set.seed(567)
-LO = layout_with_fr(G_Grouped)
-
-## Use the layout to plot the original graph
-plot(G, vertex.color=rainbow(3, alpha=0.4)[V(G)$Group1], layout=LO)

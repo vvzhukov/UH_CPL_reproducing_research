@@ -131,3 +131,35 @@ ggplot(data=data8) +
     geom_text(aes(2005,0.24,label = 'Mediated XD links'), color = "red", hjust = 0, size = 5) +
     geom_text(aes(2005,0.11,label = 'Direct XD links'), color = "blue", hjust = 0, size = 5) +
     geom_text(aes(1990,0.3,label = ' HGP (1990-2003)'), color = "black", hjust = 0, size = 4)
+
+
+
+
+## CORRECTION TBD:
+## Also check this; http://kateto.net/network-visualization
+## https://github.com/briatte/awesome-network-analysis
+
+library(igraph)
+set.seed(1234)
+G = erdos.renyi.game(20, 0.25)
+V(G)$Group1 = sample(3,20, replace=TRUE)
+
+plot(G, vertex.color=rainbow(3, alpha=0.4)[V(G)$Group1])
+
+G_Grouped = G
+E(G_Grouped)$weight = 1
+
+## Add edges with high weight between all nodes in the same group
+for(i in unique(V(G)$Group1)) {
+    GroupV = which(V(G)$Group1 == i)
+    G_Grouped = add_edges(G_Grouped, combn(GroupV, 2), attr=list(weight=5))
+} 
+
+## Now create a layout based on G_Grouped
+set.seed(567)
+LO = layout_with_fr(G_Grouped)
+
+## Use the layout to plot the original graph
+plot(G, vertex.color=rainbow(3, alpha=0.4)[V(G)$Group1], layout=LO)
+#######
+

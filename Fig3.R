@@ -7,6 +7,7 @@
 library(ggplot2)
 library(plyr)
 library(data.table)
+library(plotly)
 
 path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF" ## Path to data
 
@@ -35,22 +36,36 @@ PDF_and_median_scaled <- function(dv, xv, ## data variable, x-axis variable
 
 #A PDF for min publ year 
 # Change the name of axis, everything else is correct
-PDF_and_median_scaled(data1,data1$min_year,data1$XDIndicator,1955,2020,10)
+p <- PDF_and_median_scaled(data1,data1$min_year,data1$XDIndicator,1955,2020,10)
+ggplotly(p)
 
 #B PDF for total collaboration degree
-PDF_and_median_scaled(data1,log(data1$KTotal),data1$XDIndicator,0,2000,500)
+p <- PDF_and_median_scaled(data1,log(data1$KTotal),data1$XDIndicator,0,2000,500)
+ggplotly(p)
 
 #C PDF for Cross-disciplinarity
-PDF_and_median_scaled(data1,data1$Chi,data1$XDIndicator,0,1,0.2)
+p <- PDF_and_median_scaled(data1,data1$Chi,data1$XDIndicator,0,1,0.2)
+ggplotly(p)
 
 #D PDF for Page rank centrality
-PDF_and_median_scaled(data1,data1$PRCentrality*4190,data1$XDIndicator,0,10,1)
+p <- PDF_and_median_scaled(data1,data1$PRCentrality*4190,data1$XDIndicator,0,10,1)
+ggplotly(p)
 
 #E PDF for mean publication impact factor
-PDF_and_median_scaled(data1,data1$mean_of_IF,data1$XDIndicator,0,25,5)
+p <- PDF_and_median_scaled(data1,data1$mean_of_IF,data1$XDIndicator,0,25,5)
+ggplotly(p)
 
 #PDF Total career citations log10
-PDF_and_median_scaled(data1,log10(data1$t_pubs_citations),data1$XDIndicator,0,6,1)
+p <- PDF_and_median_scaled(data1,log10(data1$t_pubs_citations),data1$XDIndicator,0,6,1)
+ggplotly(p)
+
+##PLOTLY
+
+
+# Create a shareable link to your chart
+# Set up API credentials: https://plot.ly/r/getting-started
+chart_link = api_create(p, filename="line-basic")
+chart_link
 
 
 ## DRAFTS:

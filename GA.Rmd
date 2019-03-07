@@ -1,0 +1,367 @@
+---
+title: "Group_assignment"
+author: "Vitalii Zhukov"
+date: "3/6/2019"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Fig 2b
+For any code details please check Rmd file. 
+```{r fig_2b_code, echo=FALSE, message=FALSE,warning=FALSE}
+library(stringr)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(gtools)
+
+path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF" ## Path to data
+
+## Uploading data 
+
+## Merged Google Scholar and U.S. Funding data
+data1 <- read.csv(paste(path,"/Faculty_GoogleScholar_Funding_Data_N4190.csv", sep=''),
+                  header = TRUE)
+
+data4 <- read.csv(paste(path,"/GoogleScholar_paper_stats.csv", sep=''),
+                  header = F)
+
+colnames(data4)<-c("google_id", "year", "citations", "coathor_codes")
+# Count total number of coathors
+data4 <- cbind(data4,apply(data4["coathor_codes"],1,function(x){length(strsplit(x,',')[[1]])}))
+colnames(data4)<-c("google_id", "year", "citations", "coathor_codes","coathors")
+
+## Comment:
+## total number of faculty collaborators KTotal
+## find among them how many come from the opposite department and take their ratio
+
+# Data description:
+# coauthor_codes: [string] Indicates the number of coauthors and types of coauthors belonging to the publication. 
+# Numbers indicate “pollinator” coauthors (individuals who do not belong to the group of 4,190   set). These 
+# pollinators are coded as 0,1, or 2, whereas are coded according to their google_id. For example, the first 
+# publication line is: "1,1,1,--nVNvIAAAAJ", indicating that this publication has 4 coauthors, and only one is a 
+# faculty member (  ), which in this case corresponds to the google_id corresponding to the Google Schoar profile 
+# researcher. Pollinator codes correspond to their disciplinary type determined by the union of that particular 
+# individual’s set of coauthors: 0 = pollinator j only appeared in our dataset with other BIO ; 1 = pollinator j only 
+# appeared with other CS ; and 2 corresponds to a mixture of CS and BIO   - i.e. coauthor j is a cross-pollinator.
+
+# 0 - BIO
+# 1 - CS
+# 2 - XD - pollinators (red line)
+# code - direct link (blue line)
+
+# Counting direct, mediated
+data4$XD_mediators <- str_count(data4$coathor_codes, "2,|,2")
+
+data4$direct <- data4$coathors - (str_count(data4$coathor_codes, "0,|,0|1,|,1|2,|,2")) - 1
+
+data4$author_dept <- left_join(data4, data1, by = c("google_id"))["dept"]
+data4$raw_direct_ids <- gsub("0,|,0|1,|,1|2,|,2", "", data4$coathor_codes)
+
+data4$direct_depts <- 0
+
+# Now lets get all direct coathors depts.
+# This will take time, as O(n) for this task will be n*m*(1-150), where n-size of data4, m-size of data1, (1-150) amount of coathors. 
+
+# #for (row in 1:nrow(data4)) {
+#      data4$direct_depts[row] <- paste(apply(filter(data1,
+#                                                    google_id %in%
+#                                                        strsplit(data4$raw_direct_ids[row],',')[[1]])["dept"], 
+#                                             1, 
+#                                             paste, 
+#                                             collapse=""), 
+#                                       collapse = ",")
+#      }
+# # # ET~ 32 minutes [i7-5257U @3.1 Ghz]
+# # 
+# # # Count XD direct connections for each node
+# # data4$dir_XD_p <- ifelse(data4$author_dept =="BIO", 
+# #                           str_count(data4$direct_depts, pattern = "CS"), 
+# #                           str_count(data4$direct_depts, pattern = "BIO"))
+# 
+# # Polinators XD (leafs)
+# data4$XD_polinators <- as.numeric(ifelse(data4$author_dept =="BIO",
+#                           str_count(data4$coathor_codes, pattern = "1"),
+#                           str_count(data4$coathor_codes, pattern = "0")))
+# # Direct XD (Fi)
+# data4$XD_direct <- as.numeric(ifelse(data4$author_dept =="BIO",
+#                                          str_count(data4$direct_depts, pattern = "CS"),
+#                                          str_count(data4$direct_depts, pattern = "BIO")))
+# # Sum of direct = poli XD 
+# data4$XD_dir_poli <- data4$XD_polinators + data4$XD_direct
+# 
+# # Amunt of poli links
+# data4$polinators <-  data4$coathors - data4$direct
+# 
+# # Group by year and get summary:
+# data4 %>% group_by(year) %>% summarise (Total_authors = sum(coathors), # Total amount of link (TOTAL)
+#                                         Total_direct = sum(direct), # Link id -to- id (Direct) (DIRECT)
+#                                         Total_XD_dir_poli = sum(XD_dir_poli), # Direct (id-id) + Direct(id-num) (TOTAL XD, id, num)
+#                                         Total_XD_direct = sum(XD_direct), # Direct (id-id) (TOTAL XD, id)
+#                                         Total_XD_poli = sum(XD_polinators), # Id -to- 0/1 (-)
+#                                         Total_poli = sum(polinators), #Id -to- 0/1/2 (POLINATORS)
+#                                         Total_XD_mediators = sum(XD_mediators), # mediated (id -to- 2) (MEDIATED POLI)
+#                                         Total_records = n()) %>% as.data.frame() -> data6
+# 
+# # Dumping data, in order not to run this expensive loop every time 
+# write.csv(data6, file = paste(path,"/GoogleScholar_paper_stats_summary2.csv", sep=""))
+
+# Reading dumped data
+data6 <- read.csv(paste(path,"/GoogleScholar_paper_stats_summary2.csv", sep=""))
+
+# Grouping by each 2 years (odd vs even). data6 -> data8
+data6$calc_value <- data6$Total_XD_direct/data6$Total_direct
+data7<-data6[odd(data6$year),]
+data8<-data6[even(data6$year),]
+data8$Total_authors <- (data7$Total_authors+data8$Total_authors)/2
+data8$Total_direct <- (data7$Total_direct+data8$Total_direct)/2
+data8$Total_XD_dir_poli <- (data7$Total_XD_dir_poli+data8$Total_XD_dir_poli)/2
+data8$Total_XD_poli <- (data7$Total_XD_poli+data8$Total_XD_poli)/2
+data8$Total_poli <- (data7$Total_poli+data8$Total_poli)/2
+data8$Total_XD_mediators <- (data7$Total_XD_mediators+data8$Total_XD_mediators)/2
+data8$Total_records <- (data7$Total_records+data8$Total_records)/2
+data8$calc_value <- (data7$calc_value+data8$calc_value)/2
+remove(data7)
+```
+
+Fractions of collaborations that are cross-disciplinary.
+```{r Fig2b, echo=FALSE, message=FALSE,warning=FALSE}
+# new plot (Mohammed suggestions)
+ggplot(data=data8) +
+    geom_rect(aes(xmin = 1990, xmax = 2003, ymin = -Inf, ymax = Inf, fill = "pink"), alpha = 0.1) +
+    geom_line(aes(x=year, y=calc_value), color = "blue", size=2) +
+    geom_line(aes(x=year, y=Total_XD_mediators/Total_poli), color = "red", size=2) +
+    xlim(1980, 2015) +
+    #scale_x_continuous(breaks=seq(1980,2015,by=2), limits=c(1980,2015)) +
+    xlab("Year") +
+    ylab("Fraction of XD collaborations") +
+    theme(legend.position="none") +
+    geom_text(aes(2005,0.24,label = 'Mediated XD links'), color = "red", hjust = 0, size = 5) +
+    geom_text(aes(2005,0.11,label = 'Direct XD links'), color = "blue", hjust = 0, size = 5) +
+    geom_text(aes(1990,0.3,label = ' HGP (1990-2003)'), color = "black", hjust = 0, size = 4)
+```
+
+
+
+*Comments:*
+Evolution of the fraction of collaboration links in the F network that are cross-disciplinary.
+We calculated Direct XD links between faculties (blue line), association links mediated by polinators (red line). Orange area marks the HGP project period.
+
+*Conclusions:*
+We tried to quantify emergence and centrality of cross-disciplinary scholars in the network during and after HGP. We can notice mark growth during and in the wake of HGP which is greatly illustrates common trend of cross-disciplinarity growth. 
+
+## Fig 3
+For any code details please check Rmd file. 
+```{r fig_3_code, echo=FALSE, message=FALSE,warning=FALSE}
+## Paper "Cross-disciplinary evolution of the genomics revolution"
+## Fig 3
+## Research reproduced by: Vitalii Z.
+## State: Issues with medians, D figure and 
+
+## Loading libraries, defining variables
+library(ggplot2)
+library(plyr)
+library(data.table)
+library(plotly)
+
+path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF" ## Path to data
+
+## Uploading data 
+## Merged Google Scholar and U.S. Funding data
+data1 <- read.csv(paste(path,"/Faculty_GoogleScholar_Funding_Data_N4190.csv", sep=''),
+                  header = TRUE)
+
+## Defining function for building typical PDF graphs
+PDF_and_median_scaled <- function(dv, xv, ## data variable, x-axis variable
+                                  gv, XscaleMin, ## group variable
+                                  XscaleMax, Xstep) {
+    
+    mu <- aggregate(xv,list(gv),mean)
+
+    pv <- ggplot(data=dv, aes(x=xv, y=..density.., colour=gv, fill=gv)) +
+        geom_density(alpha=0.2, adjust=1, trim=T) +
+        geom_vline(data=mu, aes(xintercept=x, colour=Group.1),
+                   linetype="dashed", size=1) +
+        scale_x_continuous(breaks = seq(XscaleMin, XscaleMax, Xstep)) +
+        xlab(deparse(substitute(xv))) +
+        ylab('PDF')
+    return(pv)
+}
+```
+
+Descriptive statistics for the career data set.
+```{r Fig3, echo=FALSE, message=FALSE, warning=FALSE}
+par(mfrow=c(2,3))
+# Change the name of axis, everything else is correct
+p <- PDF_and_median_scaled(data1,data1$min_year,data1$XDIndicator,1955,2020,10)
+plot(p, main="A")
+
+#B PDF for total collaboration degree
+p <- PDF_and_median_scaled(data1,log(data1$KTotal),data1$XDIndicator,0,2000,500)
+plot(p, main="B")
+
+#C PDF for Cross-disciplinarity
+p <- PDF_and_median_scaled(data1,data1$Chi,data1$XDIndicator,0,1,0.2)
+plot(p, main="C")
+
+#D PDF for Page rank centrality
+p <- PDF_and_median_scaled(data1,data1$PRCentrality*4190,data1$XDIndicator,0,10,1)
+plot(p, main="D")
+
+#E PDF for mean publication impact factor
+p <- PDF_and_median_scaled(data1,data1$mean_of_IF,data1$XDIndicator,0,25,5)
+plot(p, main="E")
+
+#PDF Total career citations log10
+p <- PDF_and_median_scaled(data1,log10(data1$t_pubs_citations),data1$XDIndicator,0,6,1)
+plot(p, main="F")
+```
+
+
+
+*Comments:*
+(A) Probability distribution of the year of first publication by Fi. 
+(B) Probability distribution of Ki, the total number of collaborators for a given Fi. 
+(C) Probability distribution of Xi, the fraction of the collaborators of Fi who are cross-disciplinary. 
+(D) Probability distribution of Fi, the PageRank centrality of Fi; 
+(E) Probability distribution of the mean impact factor of the publication record of Fi.
+(F) Probability distribution of the total citations log10 Ci of Fi.
+
+*Conclusions:*
+
+- Fig3A shows that typical Fi either in BIO or CS started his career in 1990s. HGP started in 1990 so this are ideal ideal groups for study.
+
+- Fig3B demonstrates that we have significantly higher cross-collaboration degree in XD group, comparing to BIO, CS.
+
+- Fig3C shows that the XD group has a significantly higher degree of cross-disciplinarity than CS and BIO groups. Chi represents fraction of her/his collaborators who are cross-disciplinary.
+
+- Fig3D showing that the mean centrality of XD group is significanly higher than the mean centrality of BIO and CS.
+
+- Fig3E shows that XD faculties have similiar publishing behavoiur as BIO faculties (high-impact factor journals). We calculated the mean Journal Citations Report (JCR) impact factor among the publication set of each faculties.
+
+- Fig3F shows that XD group has higher mean citation impact (log10) comparing to XD and BIO faculties.
+
+## Fig S1
+
+You can also embed plots, for example:
+For any code details please check Rmd file. 
+```{r fig_S1_code, echo=FALSE, message=FALSE,warning=FALSE}
+## Paper "Cross-disciplinary evolution of the genomics revolution"
+## Fig S1a
+## Research reproduced by: Vitalii Z.
+## State: In progress..
+
+## Loading libraries, defining variables
+
+library(splitstackshape)
+library(igraph)
+library(CINNA)
+library(evmix)
+library(NetSwan)
+
+varY0<-1900 ## Year of network, lowest border
+varY<-1990 ## Year of network, highest border
+
+path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF" ## Path to data
+
+## Uploading data 
+
+## Merged Google Scholar and U.S. Funding data
+data3 <- read.csv(paste(path,"/Faculty_GoogleScholar_Funding_Data_N4190.csv", sep=''),
+                  header = TRUE)
+
+## Google Scholar — publication and citation data
+data4 <- read.csv(paste(path,"/GoogleScholar_paper_stats.csv", sep=''),
+                  header = F)
+colnames(data4)<-c("google_id", "year", "citations", "coathor_codes")
+
+## Transforming Data and building F-network (without polinators)
+
+nodes <- data3
+links <- data4
+
+#summary(nodes)
+#nodes[duplicated(nodes$id)]
+#links[duplicated(links$id)]
+
+colnames(nodes)[1]<-c("id") ## google_id modified to id
+colnames(links)[1]<-c("from")
+colnames(links)[4]<-c("to")
+
+## Transforming links to format from:to = 1:1 and removing links to itself (loops)
+links <- cSplit(links, "to", ",", "long")[to!=""]
+links <- links[,c(1,4,2,3)]
+links <- subset(links,! to %in% c(1,2,0) & ! as.character(from) == as.character(to))
+
+links <- subset(links, (year <= varY) & (year >= varY0)) ## Limiting year by variable
+links <- subset(links, from %in% nodes$id) ##
+links <- subset(links, to %in% nodes$id)
+
+## Validation: unique(links$from) %in% unique(nodes$id) && unique(links$to) %in% unique(nodes$id)
+colnames(links)[1]<-c("Source")
+colnames(links)[2]<-c("Target")
+write.csv(links, file = "links.csv", row.names=F)
+write.csv(nodes, file = "nodes.csv", row.names=F)
+
+net <- graph.data.frame(links, nodes, directed=F) ## Defining network
+## VERTICES
+
+i<-1 #loop iterations
+result<-c() #var to store the absolute size of current giantic subnetwork
+result_B <- c()
+result_PR <- c()
+while (length(V(net))!=0) {
+    g_comp <- giant_component_extract(net)
+    result[i] <- length(V(g_comp[[1]])) #store their size and number
+    result_B[i] <- sum(V(g_comp[[1]])$BetCentrality)
+    result_PR[i] <- sum(V(g_comp[[1]])$PRCentrality)
+    net <- delete.vertices(net, V(net)[V(g_comp[[1]])]) #substrack vetices from orig network
+    i<-i+1
+}  
+```
+
+Robustness of the F network with respect to link removal.
+```{r FigS1, echo=FALSE, message=FALSE, warning=FALSE}
+par(mfrow=c(1,3))
+
+x <- 1-result/max(result)
+y <- 1-(which(result %in% result)/length(result))
+smoothingSpline = smooth.spline(x, y, spar=0.4)
+
+plot(x, y, xlab="", ylab="", 
+     main="Robustness check; Volume/size; \n Size of giant component \n Sg(q)/Sg(q=0)", 
+     cex=1, col="steelblue2", cex.main=0.9)
+lines(smoothingSpline, col="black", lwd=3)
+
+x <- 1-result_B/max(result_B)
+y <- 1-(which(result_B %in% result_B)/length(result_B))
+smoothingSpline = smooth.spline(x, y, spar=1.5)
+plot(x, y, xlab="", ylab="", 
+     main="Robustness check; BetCentrality; \n Size of giant component \n Sg(q)/Sg(q=0)", 
+     cex=1, col="black", cex.main=0.9)
+lines(smoothingSpline,
+      col="dark blue", lwd=3)
+
+x<-1-result_PR/max(result_PR)
+y<-1-(which(result_PR %in% result_PR)/length(result_PR))
+smoothingSpline = smooth.spline(x, y, spar=0.5)
+plot(x, y, xlab="", ylab="", 
+     main="Robustness check; PRCentrality; \n Size of giant component \n Sg(q)/Sg(q=0)", 
+     cex=1, col="darkgreen", cex.main=0.9)
+lines(smoothingSpline,
+      col="purple", lwd=3)
+```
+
+
+
+*Comments:*
+Robustness check of network. The ratio Sg(q)/Sg(q=o) measures the size of the largest remaining fragment Sg(q), relative to the size of the initial giant component Sg(q=0). Compared subnet volumes, BetCentrality and PRcentrality values.
+
+*Conclusions:*
+The slow decay until q=0.6 indicates that this network is robust to variation in the connectivity of scholars. Whole network mainly consists of relativly big components, which is quite significant for our study.
