@@ -43,6 +43,8 @@ dt_Norm_data <- dt_Norm_data[,list(citations_summ=sum(citations)),by=google_id]
 ## Natural logarithm is only defined for x>0, log1p instead of log
 
 ## Linear model for CV data
+
+##!!! Check ranges, so that log1p could not be used everywhere (ex. range 1-0).
 mdl_cv <- lm(log1p(t_pubs_citations)~log1p(SchoolRank)+
                         log1p(h_index)+
                         log1p(t_deflated_nsf)+
@@ -50,7 +52,7 @@ mdl_cv <- lm(log1p(t_pubs_citations)~log1p(SchoolRank)+
                         log1p(t_deflated_nih)+
                         log1p(num_nih)+
                         log1p(PRCentrality)+
-                        log1p(Chi), 
+                        log1p(Chi), #!!! Add XD Indicator and Y05 Indicator
                         na.action=na.exclude, data=data1)
 
 ## Linear model for combined CV+Network data
@@ -61,5 +63,5 @@ mdl_cv_nw <- lm(log1p(citations_summ)~log1p(SchoolRank)+
                  log1p(t_deflated_nih)+
                  log1p(num_nih)+
                  log1p(PRCentrality)+
-                 log1p(Chi), 
+                 log1p(Chi),  #!!! Add XD Indicator and Y05 Indicator
              na.action=na.exclude, data=merged_data)
