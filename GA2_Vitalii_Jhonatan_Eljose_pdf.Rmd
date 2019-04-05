@@ -261,6 +261,9 @@ tab_model(mdl_2a, mdl_2b, mdl_2c ,dv.labels = c("CV", "CV + Network", "CV + Netw
 ```
 </center>
 <br>
+**Comments:**
+Standard errors were calculated using the clustered sandwich estimator, clustering on F age-cohort y0i,5 (based on 14 non-overlapping 5-year career birth year groups, e.g., 1940-1944, 1945-1950, etc.) to account for within-age-cohort correlation. Regression model also include additional fixed effects, represented by 'Discipline (O) dummy' and '5-year cohort (y0i,5) dummy' dummy variables.
+
 **Conclusions:**
 This table shows the beta coefficients of the predictor variables used in the various models. Three models are used: the first model consists of predictor variables obtained only from the CV of a Faculty, the second model consists of predictor variables obtained from both the CV and the collaboration network of the $\mathscr{F}_i$ and the third model consists of standardized beta coefficients of CV + network predictor variables. The table also consists of the standard error estimates (calculated using the clustered sandwich estimator) and also the p-value associated with it. Since the models use natural logs,$\beta$ corresponds to the percent change in $C_i$ following a 1% change in the independent variable. 
 
@@ -414,6 +417,8 @@ tab_model(mdl_3a, mdl_3b, mdl_3c, mdl_3d, mdl_3e, dv.labels = c("A. [PR]","B. [B
 ```
 </center>
 <br>
+**Comments:**
+Regression model also include additional fixed effects, represented by 'Discipline (O) dummy' and '5-year cohort (y0i,5) dummy' dummy variables.
 
 **Conclusions:**
 This table can be used to test the robustness of OLS model used for estimating the effect of the specified predictor variables. In all the different cases, we can observe that the beta coefficient estimates of the degree of cross-disciplinarity, $\beta_\chi$𝜒, remains close to our initial model estimate of 5.7%. This serves to conclude that the degree of cross-disciplinarity is a significant indicator of the number of citations that a faculty member produces, and that an increase of $\chi$ by 0.1 will correlate to about 5.7% increase in the Citation factor of the $\mathscr{F}_i$, regardless if we change some of the predictor variables in our model.
