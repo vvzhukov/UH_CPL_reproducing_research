@@ -1,0 +1,372 @@
+---
+title: 'COSC6323: Group Assignment. Part II.'
+author: "Vitalii Zhukov, Eljose E Sajan, Jonathan Plata"
+date: "4/4/2019"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+subtitle: Reproducing figures 'Cross-disciplinary evolution of the genomics revolution'
+---
+
+
+```{r setup, include=FALSE}
+```
+
+
+
+### Fig 4 Career cross-sectional regression model.
+```{r fig_4_code, message=FALSE, error=FALSE, warning=FALSE, echo=FALSE}
+## Loading libraries, defining variables
+library(ggplot2)
+library(data.table)
+library(splitstackshape)
+library(sjstats)
+library(arm)
+library(openintro)
+library(dplyr)
+library(estimatr)
+library(knitr)
+path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF/" ## Path to data
+
+## Uploading data 
+## Merged Google Scholar and U.S. Funding data
+data1 <- read.csv(paste(path,"Faculty_GoogleScholar_Funding_Data_N4190.csv", sep=''),
+                  header = TRUE)
+
+data1<-data.table(data1)
+data1[Chi==0,Chi:=0.001]
+data1[PRCentrality==0,PRCentrality:=0.0001]
+data1[BetCentrality==0,BetCentrality:=0.0001]
+
+## Linear model
+## Natural logarithm is only defined for x>0, log1p instead of log
+
+
+#####################################################################################################################
+## Linear model for CV data
+mdl_cv <- lm(log(t_pubs_citations)~
+                 log(SchoolRank)+ #Br 
+                 log(h_index)+ #Bh
+                 log1p(t_deflated_nsf)+ #B$1
+                 log1p(num_nsf)+ #Bn1
+                 log1p(t_deflated_nih)+ #B$2
+                 log1p(num_nih)+ #Bn2
+                 factor(XDIndicator)+
+                 factor(Y05yr),
+             na.action=na.exclude, data=data1)
+
+#summary(mdl_cv)
+
+## regression model - CV only with clustered sandwich estimator
+### use this model for creating table since it gives better Error estimates
+lnmdl_cv <- lm_robust(log(t_pubs_citations)~log(SchoolRank)+
+                          log(h_index)+
+                          log1p(t_deflated_nsf)+
+                          log1p(num_nsf)+
+                          log1p(t_deflated_nih)+
+                          log1p(num_nih)+
+                          factor(XDIndicator)+
+                          factor(Y05yr),
+                      data=data1,
+                      se_type ="HC1",
+                      alpha = 0.05)
+mdl_2a<-lnmdl_cv
+#summary(lnmdl_cv)
+#summary(mdl_cv)$coefficients[,2]
+
+#####################################################################################################################
+## Linear model for combined CV+Network data
+data5 <- data1[KDirect !=0]
+mdl_cv2 <- lm(log(t_pubs_citations)~
+                  log(SchoolRank)+ #Br 
+                  log(h_index)+ #Bh
+                  log1p(t_deflated_nsf)+ #B$1
+                  log1p(num_nsf)+ #Bn1
+                  log1p(t_deflated_nih)+ #B$2
+                  log1p(num_nih)+ #Bn2
+                  log(PRCentrality)+ #Bc
+                  Chi+ #Bx
+                  factor(XDIndicator)+
+                  factor(Y05yr),
+              na.action=na.exclude, data=data5)
+#summary(mdl_cv2)
+## CV + NW with clustered sandwich estimator
+### use this model for creating table since it gives better Error estimates
+
+lnmdl_cv_nw_robust <- lm_robust(log(t_pubs_citations)~log(SchoolRank)+
+                                    log(h_index)+
+                                    log1p(t_deflated_nsf)+
+                                    log1p(num_nsf)+
+                                    log1p(t_deflated_nih)+
+                                    log1p(num_nih)+
+                                    log(PRCentrality)+
+                                    Chi+
+                                    factor(XDIndicator)+
+                                    factor(Y05yr),
+                                data=data5,
+                                se_type ="HC3",
+                                alpha = 0.05)
+#summary(lnmdl_cv_nw_robust)
+mdl_2b<-lnmdl_cv_nw_robust
+
+#####################################################################################################################
+## CV + Network [Normalized] - Model 3
+
+mdl_cv_norm <- std_beta(mdl_cv2)
+mdl_2c <- lm(scale(log(t_pubs_citations))~
+                      scale(log(SchoolRank))+ #Br 
+                      scale(log(h_index))+ #Bh
+                      scale(log1p(t_deflated_nsf))+ #B$1
+                                scale(log1p(num_nsf))+ #Bn1
+                                          scale(log1p(t_deflated_nih))+ #B$2
+                                                    scale(log1p(num_nih))+ #Bn2
+                                                              scale(log(PRCentrality))+ #Bc
+                                                                        scale(Chi)+ #Bx
+                      factor(XDIndicator)+
+                      factor(Y05yr),
+                  na.action=na.exclude, data=data5)
+names(mdl_2c$coefficients) <- c("(Intercept)",                  "log(SchoolRank)",       "log(h_index)",          "log1p(t_deflated_nsf)", "log1p(num_nsf)",       
+                                "log1p(t_deflated_nih)", "log1p(num_nih)",        "log(PRCentrality)",     "Chi",                   "factor(XDIndicator)CS",       
+                                "factor(XDIndicator)XD",        "factor(Y05yr)1950",            "factor(Y05yr)1955",            "factor(Y05yr)1960",            "factor(Y05yr)1965",           
+                                "factor(Y05yr)1970",            "factor(Y05yr)1975",            "factor(Y05yr)1980",            "factor(Y05yr)1985",            "factor(Y05yr)1990",           
+                                "factor(Y05yr)1995",            "factor(Y05yr)2000",            "factor(Y05yr)2005",            "factor(Y05yr)2010"   )
+#####################################################################################################################
+#####################################################################################################################
+#Fig 4#
+
+#####################################################################################################################
+
+## Fig 4 based on model 3_v1
+
+mdl_cv3_v1 <- std_beta(mdl_cv2)
+coef.vect1 <- mdl_cv3_v1$std.estimate[c(1,3,4,5,6,7,8)]
+sd.vect1 <- mdl_cv3_v1$std.error[c(1,3,4,5,6,7,8)]
+
+longnames <- c("Br","B$1","Bn1","B$2","Bn2","Bc","Bx") #names(coef(mdl_cv)[2:9])
+
+coef_plot <- coefplot (coef.vect1, sd.vect1, varnames=longnames, vertical=FALSE,
+                       main="Standardized regression coefficents \n point estimate with 95% confidence interval",
+                       ylim=c(-0.12, 0.12),
+                       font.main=1,
+                       adj = 0.5, line = 1,
+                       cex.pts=1.3,
+                       var.las=1, cex.var=1)
+Braces(3, 0.11, face.radians = 3 * pi / 2, long = 4.5, short = 0.02)
+Braces(6.5, 0.11, face.radians = 3 * pi / 2, long = 1.75, short = 0.02)
+text(x = 3, y = 0.125, 'CV', srt = 0, cex = 1)
+text(x = 6.5, y = 0.125, 'Network', srt = 0, cex = 1)
+text(x = 1, y = 0.12, "***",srt = 90, cex = 1 )
+text(x = 4, y = 0.12, "***",srt = 90, cex = 1 )
+text(x = 5, y = 0.12, "***",srt = 90, cex = 1 )
+text(x = 7, y = 0.12, "***",srt = 90, cex = 1 )
+#box(which = "plot",lty = "solid" )
+```
+
+
+
+**Comments:**
+OLS parameter estimates for the linear regression model in Eq. 1. The coefficients for the relevant covariates split into two categories are shown, depending on whether you might find the information in the researcher’s CV or by analyzing her/his collaboration network. To facilitate comparison of the relative strength of the parameter estimates, the standardized beta coefficients are shown, representing the change in the dependent variable ln Ci that corresponds to a 1-SD shift in a given covariate. See table S2 for the complete list of parameter estimates. The levels of statistical significance are as follows: ***P <= 0.001.
+
+**Conclusions:**
+
+
+
+### Table S2. Career data set: Pooled cross-sectional model. 
+```{r fig_S2_code, message=FALSE,warning=FALSE, echo=FALSE}
+
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+
+v_terms <- c("log(SchoolRank)", 
+             "log(h_index)", 
+             "log1p(t_deflated_nsf)",
+             "log1p(num_nsf)",
+             "log1p(t_deflated_nih)",
+             "log1p(num_nih)",
+             "log(PRCentrality)",
+             "Chi",
+             "(Intercept)")
+
+
+pl <- c("Constant",
+        "Departmental rank ,Br",
+        "Productivity (h-index), Bp",
+        "Total NSF funding, B$1",
+        "# of NSF grants, Bn1",
+        "Total NIH funding, B$2",
+        "# of NIH grants, Bn2",
+        "PageRank centrality, Bc",
+        "Cross-disciplinarity, Bx"
+)
+
+
+tab_model(mdl_2a, mdl_2b, mdl_2c ,dv.labels = c("CV", "CV + Network", "CV + Network [Standardized]"), 
+          show.ci=FALSE, show.se=TRUE, digits=3,digits.p=3,pred.labels = pl, terms = v_terms,
+          order.terms = c(2,3,4,5,6,7,8,9,1),CSS = list(css.modelcolumn3 = 'background-color: lightgrey;',
+                                                        css.modelcolumn1 = 'background-color: lightgrey;'))
+
+```
+
+
+
+**Comments:**
+The dependent variable is career achievement, measured as the natural logarithm of the Google Scholar citations, LnCi as of 2017. The regression model is specified in Eq. (1) and estimated using standard OLS; there are 4,190 Fi (observations) for the pure CV model and 3,900 observations for the other two models that include network attributes, as in these cases we exclude from consideration disconnected Finodes. Natural logs were used to obtain variables that are approximately normally distributed. Thus, when the independent variable enters in ln, then B corresponds to the % change in Ci following a 1% change in the independent variable; in the case of the cross-disciplinarity fraction, Bx represents the % change in Ci following a 0.01 shift increase in Xi. The first column cluster shows the estimates using only standard CV variables. The combined CV + Network model demonstrates that Fi with larger Xi correlate with higher net citation impact. For the combined model we also report the standardized beta coefficients – useful for comparing the relative strength of covariates within the regression. Standard errors were calculated using the clustered sandwich estimator, clustering on F age-cohort y0 (based on 14 non-i i,5 overlapping 5-year career birth year groups, e.g., 1940-1944, 1945-1950, etc.) to account for within-age- cohort correlation. Also additional fixed effects were included in the regression model: Discipline (O) dummy, 5-year cohort (y0i,5) dummy.
+
+**Conclusions:**
+
+
+
+### Table S3.Career data set: Pooled cross-sectional model—robustness check. 
+```{r fig_S3_code, echo=FALSE, error=FALSE, message=FALSE, warning=FALSE}
+#####################################################################################################################
+#TABLE S3#
+#####################################################################################################################
+
+## Table S3 - model A is same as previous model
+lnmdl_cv_nw_robust <- lm_robust(log(t_pubs_citations)~log(SchoolRank)+
+                                    log(h_index)+
+                                    log1p(t_deflated_nsf)+
+                                    log1p(num_nsf)+
+                                    log1p(t_deflated_nih)+
+                                    log1p(num_nih)+
+                                    log(PRCentrality)+
+                                    Chi+
+                                    factor(XDIndicator)+
+                                    factor(Y05yr),
+                                data=data5,
+                                se_type ="HC3",
+                                alpha = 0.05)
+mdl_3a <- lnmdl_cv_nw_robust
+
+
+#####################################################################################################################
+
+## Table S3 - model B
+
+data5[t_deflated_nsf==0,t_deflated_nsf:=1]
+data5[t_deflated_nih==0,t_deflated_nih:=1]
+data5[num_nsf==0,num_nsf:=1]
+data5[num_nih==0,num_nih:=1]
+
+#removing entries with extremely small Betweenes centrality
+data6 <- data5[BetCentrality > 0.000100]
+
+mdl_cv4B <- lm_robust(log(t_pubs_citations)~
+                          log(SchoolRank)+ #Br 
+                          log(h_index)+ #Bh
+                          log1p(t_deflated_nsf)+ #B$1
+                          log1p(num_nsf)+ #Bn1
+                          log1p(t_deflated_nih)+ #B$2
+                          log1p(num_nih)+ #Bn2
+                          log(BetCentrality)+ #Bc
+                          Chi+ #Bx
+                          factor(XDIndicator)+
+                          factor(Y05yr),
+                      data=data6,
+                      se_type ="HC3",
+                      alpha = 0.05)
+#summary(mdl_cv4B)
+mdl_3b <- mdl_cv4B
+#####################################################################################################################
+
+##Table S3 - model C
+mdl_cv4C <- lm_robust(log(t_pubs_citations)~
+                          log(SchoolRank)+ #Br 
+                          log(h_index)+ #Bh
+                          log1p(t_deflated_nsf)+ #B$1
+                          log1p(num_nsf)+ 
+                          log1p(t_deflated_nih)+ #B$2
+                          log1p(num_nih)+
+                          log(KDirect)+ #Bc
+                          Chi+ #Bx
+                          factor(XDIndicator)+
+                          factor(Y05yr),
+                      se_type ="HC3",
+                      alpha = 0.05, data=data5)
+#summary(mdl_cv4C)
+mdl_3c <- mdl_cv4C
+#####################################################################################################################
+
+##Table S3 - model D
+mdl_cv4D <- lm_robust(log(t_pubs_citations)~
+                          log(SchoolRank)+ #Br 
+                          log(h_index)+ #Bh
+                          log1p(t_deflated_nsf)+ #B$1
+                          log1p(t_deflated_nih)+ #B$2
+                          log(PRCentrality)+ #Bc
+                          Chi+ #Bx
+                          factor(XDIndicator)+
+                          factor(Y05yr),
+                      se_type ="HC3",
+                      alpha = 0.05, data=data5)
+#summary(mdl_cv4D)
+mdl_3d <- mdl_cv4D
+#####################################################################################################################
+
+##Table S3 - model E
+mdl_cv4E <- lm_robust(log(t_pubs_citations)~
+                          log(h_index)+ #Bh
+                          log1p(t_deflated_nsf)+ #B$1
+                          log1p(num_nsf)+ #Bn1
+                          log1p(t_deflated_nih)+ #B$2
+                          log1p(num_nih)+ #Bn2
+                          log(PRCentrality)+ #Bc
+                          Chi+ #Bx
+                          factor(XDIndicator)+
+                          factor(Y05yr),
+                      se_type ="HC3",
+                      alpha = 0.05, data=data5)
+#summary(mdl_cv4E)
+mdl_3e <- mdl_cv4E
+
+#####################################################################################################################
+#####################################################################################################################
+
+library(sjPlot)
+library(sjmisc)
+library(sjlabelled)
+
+v_terms2 <- c("log(SchoolRank)", 
+             "log(h_index)", 
+             "log1p(t_deflated_nsf)",
+             "log1p(num_nsf)",
+             "log1p(t_deflated_nih)",
+             "log1p(num_nih)",
+             "log(PRCentrality)",
+             "log(BetCentrality)",
+             "log(KDirect)",
+             "Chi",
+             "(Intercept)")
+
+
+pl2 <- c("Constant",
+        "Departmental rank, Br",
+        "Productivity (h-index), Bp",
+        "Total NSF funding, B$1",
+        "# of NSF grants, Bn1",
+        "Total NIH funding, B$2",
+        "# of NIH grants, Bn2",
+        "PageRank centrality, Bc",
+        "Cross-disciplinarity, Bx",
+        "Betweeness centrality, Bb",
+        "Degree centrality, Bd"
+)
+
+
+tab_model(mdl_3a, mdl_3b, mdl_3c, mdl_3d, mdl_3e, dv.labels = c("A. [PR]","B. [B]","C. [D]","D. [-Bn1,-Bn2]","E. [-Br]"), show.ci=FALSE, show.se=TRUE,pred.labels = pl2, terms = v_terms2,
+          order.terms = c(2,3,4,5,6,7,8,10,11,9,1), digits=3,digits.p=3,CSS = list(css.modelcolumn5 = 'background-color: lightgrey;',
+                                                                                   css.modelcolumn3 = 'background-color: lightgrey;',
+                                                                                   css.modelcolumn1 = 'background-color: lightgrey;'))
+```
+
+
+
+**Comments:**
+Parameter estimates for variants of the ‘CV + Network’ pooled cross-sectional models reported in table S2: (a) Model with PageRank centrality. (b) Model with betweenness centrality. (c) Model with degree centrality; (d) Model without the number of grants variables; (e) Model without the departmental rank variable. Results are not significantly different with respect to the primary covariate of interest, that is, cross- disciplinarity. Also additional fixed effects were included in the regression model: Discipline (O) dummy, 5-year cohort (y0i,5) dummy
+\* p <= .05, \*\* p<= .01, \*\*\* p <= .001
+
+**Conclusions:**
+
+
