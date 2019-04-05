@@ -9,13 +9,29 @@ output:
 subtitle: Reproducing figures 'Cross-disciplinary evolution of the genomics revolution'
 ---
 
-
 ```{r setup, include=FALSE}
 ```
 
+### Fig. 4: Career cross-sectional regression model
+
+As the major theme of the research was to test whether a higher degree of cross-disciplinarity of a faculty member ($\mathscr{F}_i$) would directly result in a higher contribution to the genomics research, the faculty member's latest citation number (as of 2017) can serve as an indicator. This relationship can be captured by running an Ordinary Least Squares (OLS) regression model where the dependent variable is the citation index of the faculty member with one of the predictor variables being the degree of cross-disciplinarity ($\chi_i$). The following OLS linear regression model was used to determine this relationship:
 
 
-### Fig 4 Career cross-sectional regression model.
+<br>
+<center>
+$lnC_i = \beta_rlnr_i + \beta_hlnh_i + \beta_{\text{\$1}}ln\$_i^{\text{NSF}} + \beta_{\text{N1}}lnN_i^{\text{NSF}} + \beta_{\text{\$2}}ln\$_i^{\text{NIH}} +$
+
+$\beta_{\text{N2}}lnN_i^{\text{NIH}} + \beta_Cln\mathscr{C}_i^{\text{PR}} + \beta_\chi\chi_i + D(O(\mathscr{F}_i)) + D(y_{\text{i,5}}^0) + \beta_0 + \epsilon$
+</center>
+<br>
+
+
+where $C_i$ is the total number of citations for $\mathscr{F}_i$, $r_i$ is the ranking of her/his department, $h_i$ is her/his h-index serving here as a productivity measure, and $N_i^{\text{NSF}}$ and $N_i^{\text{NIH}}$ i are the total counts of her/his National Science Foundation (NSF) and National Institutes of Health (NIH) grants, while $\$_i^{\text{NSF}}$ and $\$_i^{\text{NIH}}$ are the total monies from the NSF and NIH grants deflated to constant 2010 USD, $\mathscr{C}_i^{\text{PR}}$ is her/his PageRank centrality within the F-network, and $\chi_i$ is the fraction of her/his total $K_i$ co authors who are cross-disciplinary. 
+
+Two dummy variables, the first capturing the three possible disciplinary orientations ($BIO_\mathscr{F}$ or $CS_\mathscr{F}$ or $XD_\mathscr{F}$), the second capturing age cohort variation, where $y_{\text{i,5}}^0$ is the year of the faculty’s first publication grouped into nonoverlapping 5-year intervals. 
+
+<center>
+<br>
 ```{r fig_4_code, message=FALSE, error=FALSE, warning=FALSE, echo=FALSE}
 ## Loading libraries, defining variables
 library(ggplot2)
@@ -27,6 +43,8 @@ library(openintro)
 library(dplyr)
 library(estimatr)
 library(knitr)
+library(robustHD)
+
 path <- "/Users/apple/UH-CPL/XD_Human_genom/Data_OSF/" ## Path to data
 
 ## Uploading data 
@@ -114,15 +132,16 @@ mdl_2b<-lnmdl_cv_nw_robust
 ## CV + Network [Normalized] - Model 3
 
 mdl_cv_norm <- std_beta(mdl_cv2)
-mdl_2c <- lm(scale(log(t_pubs_citations))~
-                      scale(log(SchoolRank))+ #Br 
-                      scale(log(h_index))+ #Bh
-                      scale(log1p(t_deflated_nsf))+ #B$1
-                                scale(log1p(num_nsf))+ #Bn1
-                                          scale(log1p(t_deflated_nih))+ #B$2
-                                                    scale(log1p(num_nih))+ #Bn2
-                                                              scale(log(PRCentrality))+ #Bc
-                                                                        scale(Chi)+ #Bx
+mdl_2c <- lm(log(t_pubs_citations)~
+                      standardize(log(SchoolRank), centerFun = mean, scaleFun = sd)+ #Br 
+                      standardize(log(h_index), centerFun = mean, scaleFun = sd)+ #Bh
+                      standardize(log1p(t_deflated_nsf), centerFun = mean, scaleFun = sd)+ #B$1
+                      standardize(log1p(num_nsf), centerFun = mean, scaleFun = sd)+ #Bn1
+                      standardize(log1p(t_deflated_nih), centerFun = mean, scaleFun = sd)+ #B$2
+                      standardize(log1p(num_nih), centerFun = mean, scaleFun = sd)+ #Bn2
+                      standardize(log(PRCentrality), centerFun = mean, scaleFun = sd)+ #Bc
+                      standardize(Chi, centerFun = mean, scaleFun = sd)+ #Bx
+                      
                       factor(XDIndicator)+
                       factor(Y05yr),
                   na.action=na.exclude, data=data5)
@@ -131,6 +150,9 @@ names(mdl_2c$coefficients) <- c("(Intercept)",                  "log(SchoolRank)
                                 "factor(XDIndicator)XD",        "factor(Y05yr)1950",            "factor(Y05yr)1955",            "factor(Y05yr)1960",            "factor(Y05yr)1965",           
                                 "factor(Y05yr)1970",            "factor(Y05yr)1975",            "factor(Y05yr)1980",            "factor(Y05yr)1985",            "factor(Y05yr)1990",           
                                 "factor(Y05yr)1995",            "factor(Y05yr)2000",            "factor(Y05yr)2005",            "factor(Y05yr)2010"   )
+
+
+
 #####################################################################################################################
 #####################################################################################################################
 #Fig 4#
@@ -139,11 +161,28 @@ names(mdl_2c$coefficients) <- c("(Intercept)",                  "log(SchoolRank)
 
 ## Fig 4 based on model 3_v1
 
-mdl_cv3_v1 <- std_beta(mdl_cv2)
+mdl_cv3_v1 <- std_beta(mdl_2c)
+#mdl_cv3_v1 <- mdl_2c
 coef.vect1 <- mdl_cv3_v1$std.estimate[c(1,3,4,5,6,7,8)]
 sd.vect1 <- mdl_cv3_v1$std.error[c(1,3,4,5,6,7,8)]
 
-longnames <- c("Br","B$1","Bn1","B$2","Bn2","Bc","Bx") #names(coef(mdl_cv)[2:9])
+longnames <- c(
+  "Br",
+  "B$1",
+  "Bn1",
+  "B$2",
+  "Bn2",
+  "Bc",
+  "Bx") #names(coef(mdl_cv)[2:9])
+
+longnames <- c(
+  expression(beta["r"]),
+  expression(beta["$1"]),
+  expression(beta["n1"]),
+  expression(beta["$2"]),
+  expression(beta["n2"]),
+  expression(beta["c"]),
+  expression(beta["x"])) 
 
 coef_plot <- coefplot (coef.vect1, sd.vect1, varnames=longnames, vertical=FALSE,
                        main="Standardized regression coefficents \n point estimate with 95% confidence interval",
@@ -152,8 +191,8 @@ coef_plot <- coefplot (coef.vect1, sd.vect1, varnames=longnames, vertical=FALSE,
                        adj = 0.5, line = 1,
                        cex.pts=1.3,
                        var.las=1, cex.var=1)
-Braces(3, 0.11, face.radians = 3 * pi / 2, long = 4.5, short = 0.02)
-Braces(6.5, 0.11, face.radians = 3 * pi / 2, long = 1.75, short = 0.02)
+Braces(3, 0.11, face.radians = 3 * pi / 2, long = 4.5, short = 0.01)
+Braces(6.5, 0.11, face.radians = 3 * pi / 2, long = 1.75, short = 0.01)
 text(x = 3, y = 0.125, 'CV', srt = 0, cex = 1)
 text(x = 6.5, y = 0.125, 'Network', srt = 0, cex = 1)
 text(x = 1, y = 0.12, "***",srt = 90, cex = 1 )
@@ -162,17 +201,20 @@ text(x = 5, y = 0.12, "***",srt = 90, cex = 1 )
 text(x = 7, y = 0.12, "***",srt = 90, cex = 1 )
 #box(which = "plot",lty = "solid" )
 ```
-
-
+</center>
+<br>
 
 **Comments:**
-OLS parameter estimates for the linear regression model in Eq. 1. The coefficients for the relevant covariates split into two categories are shown, depending on whether you might find the information in the researcher’s CV or by analyzing her/his collaboration network. To facilitate comparison of the relative strength of the parameter estimates, the standardized beta coefficients are shown, representing the change in the dependent variable ln Ci that corresponds to a 1-SD shift in a given covariate. See table S2 for the complete list of parameter estimates. The levels of statistical significance are as follows: ***P <= 0.001.
+By showing the standardized beta coefficients, it is easier to compare the relative strengths of the parameters to the dependent variable $C_i$. Table S2 contains the complete list of paramter estimates. The levels of statistical significance are represented by ***P $\leq$ 0.001. 
 
 **Conclusions:**
+The coefficients of the different independent variables used in the OLS regression model are shown, namely the funding variables ($\$_i^{\text{NSF}}$, $N_i^{\text{NSF}}$, $\$_i^{\text{NIH}}$ and $N_i^{\text{NIH}}$) and collaboration variables ($\mathscr{C}_i^{\text{PR}}$ and $\chi_i$). The figure is split into 2 sections, CV and Network, based on the location from which the information was obtained; either from the Faculties CV or by analyzing the faculties collaboration network. For comparing the relative influence of each of these predictor parameters on the dependent variable, the model with standardized beta coefficients was used. A standardized beta coefficient compares the strength of the effect of each individual independent variable to the dependent variable. 
 
+The higher the absolute value of the beta coefficient, the stronger the effect. In regression analysis, different units and different scales are often used, like in this model. Standardizing coefficients means that you can compare the relative importance of each coefficient in a regression model. This standardized model would mean that a change in the LHS of the regression model corresponds to 1- standard deviation shift in a given RHS variable. According to the figure and as expected from the linear regression, the amount of total citation impact grows with the degree of cross disciplinary activity.
 
-
-### Table S2. Career data set: Pooled cross-sectional model. 
+### Table S2. Career data set: Pooled cross-sectional model.
+<center>
+<br>
 ```{r fig_S2_code, message=FALSE,warning=FALSE, echo=FALSE}
 
 library(sjPlot)
@@ -189,9 +231,18 @@ v_terms <- c("log(SchoolRank)",
              "Chi",
              "(Intercept)")
 
+pl_t<-c("Constant",
+        expression(beta["r"]), 
+        expression(beta["p"]), 
+        expression(beta["$1"]), 
+        expression(beta["n1"]),
+        expression(beta["$2"]),
+        expression(beta["n2"]),
+        expression(beta["c"]),  
+        expression(beta["x"]))
 
 pl <- c("Constant",
-        "Departmental rank ,Br",
+        "Departmental rank , Br",
         "Productivity (h-index), Bp",
         "Total NSF funding, B$1",
         "# of NSF grants, Bn1",
@@ -201,24 +252,25 @@ pl <- c("Constant",
         "Cross-disciplinarity, Bx"
 )
 
-
+    
 tab_model(mdl_2a, mdl_2b, mdl_2c ,dv.labels = c("CV", "CV + Network", "CV + Network [Standardized]"), 
           show.ci=FALSE, show.se=TRUE, digits=3,digits.p=3,pred.labels = pl, terms = v_terms,
           order.terms = c(2,3,4,5,6,7,8,9,1),CSS = list(css.modelcolumn3 = 'background-color: lightgrey;',
                                                         css.modelcolumn1 = 'background-color: lightgrey;'))
 
 ```
-
-
-
-**Comments:**
-The dependent variable is career achievement, measured as the natural logarithm of the Google Scholar citations, LnCi as of 2017. The regression model is specified in Eq. (1) and estimated using standard OLS; there are 4,190 Fi (observations) for the pure CV model and 3,900 observations for the other two models that include network attributes, as in these cases we exclude from consideration disconnected Finodes. Natural logs were used to obtain variables that are approximately normally distributed. Thus, when the independent variable enters in ln, then B corresponds to the % change in Ci following a 1% change in the independent variable; in the case of the cross-disciplinarity fraction, Bx represents the % change in Ci following a 0.01 shift increase in Xi. The first column cluster shows the estimates using only standard CV variables. The combined CV + Network model demonstrates that Fi with larger Xi correlate with higher net citation impact. For the combined model we also report the standardized beta coefficients – useful for comparing the relative strength of covariates within the regression. Standard errors were calculated using the clustered sandwich estimator, clustering on F age-cohort y0 (based on 14 non-i i,5 overlapping 5-year career birth year groups, e.g., 1940-1944, 1945-1950, etc.) to account for within-age- cohort correlation. Also additional fixed effects were included in the regression model: Discipline (O) dummy, 5-year cohort (y0i,5) dummy.
-
+</center>
+<br>
 **Conclusions:**
+This table shows the beta coefficients of the predictor variables used in the various models. Three models are used: the first model consists of predictor variables obtained only from the CV of a Faculty, the second model consists of predictor variables obtained from both the CV and the collaboration network of the $\mathscr{F}_i$ and the third model consists of standardized beta coefficients of CV + network predictor variables. The table also consists of the standard error estimates (calculated using the clustered sandwich estimator) and also the p-value associated with it. Since the models use natural logs,$\beta$ corresponds to the percent change in $C_i$ following a 1% change in the independent variable. 
 
+In the case of the cross-disciplinarity fraction, $\beta_\chi$ represents the percent change in $C_i$ following a 0.01 shift increase in $\chi_i$. From the p-values, it becomes apparent that the departmental rank, h-index, total NIH funding, number of NIH grants (from CV) and degree of cross-disciplinarity ($\chi$, from Network) are more significant in influencing the citation output of a faculty member. This consistent influence of $\chi$ confirms our assumption that faculty with higher citation numbers are directly influenced by their degree of cross-disciplinarity. From the CV + Network model, we can see that an increase of $\chi$ by 0.1 will correlate to 5.7% increase in the citation factor of the $\mathscr{F}_i$. 
 
+From the table we can also observe the influence of funding. The total amount of funding from NIH and the number of grants from NIH are both significant, while both of the same predictors are not significant when the funding agency is NSF. This shows different levels of reliance on the funding agency between BIO and CS faculties. Also, in case when NIH is the funding agency, there is concrete proof that there is benefits from the NIH funding amounts, but the number of grants from NIH shows a negative beta coefficient. This would mean that higher grant amounts would be more beneficial rather than numerous small valued grants from the NIH.
 
 ### Table S3.Career data set: Pooled cross-sectional model—robustness check. 
+<center>
+<br>
 ```{r fig_S3_code, echo=FALSE, error=FALSE, message=FALSE, warning=FALSE}
 #####################################################################################################################
 #TABLE S3#
@@ -360,13 +412,11 @@ tab_model(mdl_3a, mdl_3b, mdl_3c, mdl_3d, mdl_3e, dv.labels = c("A. [PR]","B. [B
                                                                                    css.modelcolumn3 = 'background-color: lightgrey;',
                                                                                    css.modelcolumn1 = 'background-color: lightgrey;'))
 ```
-
-
-
-**Comments:**
-Parameter estimates for variants of the ‘CV + Network’ pooled cross-sectional models reported in table S2: (a) Model with PageRank centrality. (b) Model with betweenness centrality. (c) Model with degree centrality; (d) Model without the number of grants variables; (e) Model without the departmental rank variable. Results are not significantly different with respect to the primary covariate of interest, that is, cross- disciplinarity. Also additional fixed effects were included in the regression model: Discipline (O) dummy, 5-year cohort (y0i,5) dummy
-\* p <= .05, \*\* p<= .01, \*\*\* p <= .001
+</center>
+<br>
 
 **Conclusions:**
+This table can be used to test the robustness of OLS model used for estimating the effect of the specified predictor variables. In all the different cases, we can observe that the beta coefficient estimates of the degree of cross-disciplinarity, $\beta_\chi$𝜒, remains close to our initial model estimate of 5.7%. This serves to conclude that the degree of cross-disciplinarity is a significant indicator of the number of citations that a faculty member produces, and that an increase of $\chi$ by 0.1 will correlate to about 5.7% increase in the Citation factor of the $\mathscr{F}_i$, regardless if we change some of the predictor variables in our model.
+
 
 
